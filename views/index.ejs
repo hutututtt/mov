@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <i class="fas fa-film"></i>
+                <span>电影天堂</span>
+            </div>
+            <div class="nav-menu">
+                <a href="#" class="nav-link active" data-category="hot">热门电影</a>
+                <a href="#" class="nav-link" data-category="action">动作片</a>
+                <a href="#" class="nav-link" data-category="comedy">喜剧片</a>
+                <a href="#" class="nav-link" data-category="drama">剧情片</a>
+            </div>
+            <div class="nav-search">
+                <input type="text" id="searchInput" placeholder="搜索电影...">
+                <button id="searchBtn"><i class="fas fa-search"></i></button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主要内容区域 -->
+    <main class="main-content">
+        <!-- 加载指示器 -->
+        <div id="loading" class="loading">
+            <div class="spinner"></div>
+            <p>加载中...</p>
+        </div>
+
+        <!-- 电影列表 -->
+        <div id="movieList" class="movie-grid">
+            <!-- 电影卡片将通过JavaScript动态生成 -->
+        </div>
+
+        <!-- 分页 -->
+        <div id="pagination" class="pagination">
+            <!-- 分页按钮将通过JavaScript动态生成 -->
+        </div>
+    </main>
+
+    <!-- 电影详情模态框 -->
+    <div id="movieModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <div id="movieDetail">
+                <!-- 电影详情将通过JavaScript动态生成 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 播放器模态框 -->
+    <div id="playerModal" class="modal">
+        <div class="modal-content player-modal">
+            <span class="close">&times;</span>
+            <div id="videoPlayer">
+                <!-- 视频播放器将通过JavaScript动态生成 -->
+            </div>
+            <div class="test-video-container">
+                <button id="testVideoBtn" class="test-video-btn">
+                    测试播放 (示例视频)
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 脚本 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.4.12/hls.min.js"></script>
+    <script src="/js/app.js"></script>
+</body>
+</html>
