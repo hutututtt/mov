@@ -21,14 +21,21 @@
 
 ## 快速开始
 
-### 🚀 Vercel 一键部署
+### 🚀 一键部署（推荐国内用户）
 
+#### 方案1：Railway 部署
+[![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/new/template?template=https://github.com/您的用户名/movie-streaming-platform)
+
+#### 方案2：Render 部署
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/您的用户名/movie-streaming-platform)
+
+#### 方案3：腾讯云开发
+1. 访问 [腾讯云开发控制台](https://console.cloud.tencent.com/tcb)
+2. 创建云函数
+3. 上传代码并部署
+
+### 🌍 Vercel 部署（需要翻墙）
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/您的用户名/movie-streaming-platform)
-
-1. 点击上面的按钮
-2. 连接您的GitHub账号
-3. 选择仓库并部署
-4. 等待部署完成，获得在线访问链接
 
 ### 💻 本地开发
 
@@ -63,6 +70,42 @@ http://localhost:3000
 ```bash
 npm run dev
 ```
+
+## 🌐 部署指南
+
+### Railway 部署（推荐）
+1. 点击上面的 Railway 按钮
+2. 连接 GitHub 账号
+3. 选择仓库
+4. 等待自动部署
+5. 获得 `https://xxx.railway.app` 访问链接
+
+### Render 部署
+1. 访问 [Render](https://render.com)
+2. 注册账号并连接 GitHub
+3. 选择 "New Web Service"
+4. 选择您的仓库
+5. 配置：
+   - Build Command: `npm install`
+   - Start Command: `npm start`
+6. 点击 "Create Web Service"
+
+### 腾讯云开发部署
+1. 访问 [腾讯云开发控制台](https://console.cloud.tencent.com/tcb)
+2. 创建环境
+3. 进入云函数管理
+4. 创建云函数，选择 Node.js 12.16
+5. 上传项目代码
+6. 配置触发器为 HTTP 触发器
+7. 部署并获取访问地址
+
+### 阿里云函数计算
+1. 访问 [阿里云函数计算控制台](https://fc.console.aliyun.com)
+2. 创建服务
+3. 创建函数，选择 Node.js 运行时
+4. 上传代码包
+5. 配置 HTTP 触发器
+6. 部署并获取访问地址
 
 ## 项目结构
 
