@@ -19,18 +19,29 @@
 - **播放器**: HLS.js (支持M3U8流媒体)
 - **API**: 基于抓包分析的第三方API
 
-## 安装和运行
+## 快速开始
 
-### 环境要求
+### 🚀 Vercel 一键部署
 
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/您的用户名/movie-streaming-platform)
+
+1. 点击上面的按钮
+2. 连接您的GitHub账号
+3. 选择仓库并部署
+4. 等待部署完成，获得在线访问链接
+
+### 💻 本地开发
+
+#### 环境要求
 - Node.js 14.0 或更高版本
 - npm 或 yarn
 
-### 安装步骤
+#### 安装步骤
 
-1. 克隆或下载项目到本地
+1. 克隆项目
 ```bash
-cd mov
+git clone https://github.com/您的用户名/movie-streaming-platform.git
+cd movie-streaming-platform
 ```
 
 2. 安装依赖
@@ -48,9 +59,7 @@ npm start
 http://localhost:3000
 ```
 
-### 开发模式
-
-使用开发模式启动，支持热重载：
+#### 开发模式
 ```bash
 npm run dev
 ```
