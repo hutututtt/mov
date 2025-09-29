@@ -107,6 +107,141 @@ npm run dev
 5. 配置 HTTP 触发器
 6. 部署并获取访问地址
 
+## 🖥️ 服务器部署
+
+### 方案1：Docker 部署（推荐）
+
+#### 使用 Docker Compose
+```bash
+# 克隆项目
+git clone https://github.com/您的用户名/movie-streaming-platform.git
+cd movie-streaming-platform
+
+# 启动服务
+docker-compose up -d
+
+# 查看日志
+docker-compose logs -f
+```
+
+#### 使用 Docker
+```bash
+# 构建镜像
+docker build -t movie-streaming-platform .
+
+# 运行容器
+docker run -d -p 3000:3000 --name movie-app movie-streaming-platform
+
+# 查看状态
+docker ps
+```
+
+### 方案2：PM2 进程管理
+
+#### 安装 PM2
+```bash
+npm install -g pm2
+```
+
+#### 部署步骤
+```bash
+# 1. 克隆项目到服务器
+git clone https://github.com/您的用户名/movie-streaming-platform.git
+cd movie-streaming-platform
+
+# 2. 安装依赖
+npm install --production
+
+# 3. 启动应用
+pm2 start ecosystem.config.js --env production
+
+# 4. 设置开机自启
+pm2 startup
+pm2 save
+```
+
+#### PM2 常用命令
+```bash
+# 查看应用状态
+pm2 status
+
+# 查看日志
+pm2 logs movie-streaming-platform
+
+# 重启应用
+pm2 restart movie-streaming-platform
+
+# 停止应用
+pm2 stop movie-streaming-platform
+
+# 监控面板
+pm2 monit
+```
+
+### 方案3：Nginx 反向代理
+
+#### 安装 Nginx
+```bash
+# Ubuntu/Debian
+sudo apt update
+sudo apt install nginx
+
+# CentOS/RHEL
+sudo yum install nginx
+```
+
+#### 配置 Nginx
+```bash
+# 复制配置文件
+sudo cp nginx.conf /etc/nginx/sites-available/movie-streaming-platform
+sudo ln -s /etc/nginx/sites-available/movie-streaming-platform /etc/nginx/sites-enabled/
+
+# 测试配置
+sudo nginx -t
+
+# 重启 Nginx
+sudo systemctl restart nginx
+```
+
+### 方案4：一键部署脚本
+
+#### 使用部署脚本
+```bash
+# 给脚本执行权限
+chmod +x deploy.sh
+
+# 执行部署
+./deploy.sh production
+```
+
+#### 脚本功能
+- ✅ 自动备份当前版本
+- ✅ 拉取最新代码
+- ✅ 安装依赖
+- ✅ 重启服务
+- ✅ 健康检查
+- ✅ 错误处理
+
+### 服务器要求
+
+#### 最低配置
+- CPU: 1核心
+- 内存: 1GB
+- 存储: 10GB
+- 系统: Ubuntu 18.04+ / CentOS 7+
+
+#### 推荐配置
+- CPU: 2核心
+- 内存: 2GB
+- 存储: 20GB
+- 系统: Ubuntu 20.04+ / CentOS 8+
+
+#### 环境要求
+- Node.js 14.0+
+- Nginx 1.18+
+- PM2 (可选)
+- Docker (可选)
+
 ## 项目结构
 
 ```
