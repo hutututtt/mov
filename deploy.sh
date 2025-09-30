@@ -1,26 +1,19 @@
 #!/bin/bash
 
-# 电影平台部署脚本
-# 使用方法: ./deploy.sh [production|staging]
+# 电影平台 Docker 部署脚本
+# 使用方法: ./deploy.sh [dev|prod]
 
 set -e
 
-# 颜色输出
+# 颜色定义
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# 配置变量
-APP_NAME="movie-streaming-platform"
-APP_DIR="/var/www/$APP_NAME"
-BACKUP_DIR="/var/backups/$APP_NAME"
-LOG_DIR="/var/log/$APP_NAME"
-NGINX_SITES="/etc/nginx/sites-available"
-NGINX_ENABLED="/etc/nginx/sites-enabled"
-
-# 函数：打印信息
-print_info() {
+# 打印带颜色的消息
+print_message() {
     echo -e "${GREEN}[INFO]${NC} $1"
 }
 
@@ -32,116 +25,141 @@ print_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
-# 函数：检查命令是否存在
-check_command() {
-    if ! command -v $1 &> /dev/null; then
-        print_error "$1 未安装，请先安装 $1"
-        exit 1
-    fi
+print_step() {
+    echo -e "${BLUE}[STEP]${NC} $1"
 }
 
-# 函数：创建目录
+# 检查 Docker 是否安装
+check_docker() {
+    if ! command -v docker &> /dev/null; then
+        print_error "Docker 未安装，请先安装 Docker"
+        exit 1
+    fi
+    
+    if ! command -v docker-compose &> /dev/null; then
+        print_error "Docker Compose 未安装，请先安装 Docker Compose"
+        exit 1
+    fi
+    
+    print_message "Docker 环境检查通过"
+}
+
+# 创建必要的目录
 create_directories() {
-    print_info "创建必要目录..."
-    sudo mkdir -p $APP_DIR
-    sudo mkdir -p $BACKUP_DIR
-    sudo mkdir -p $LOG_DIR
-    sudo mkdir -p $APP_DIR/logs
+    print_step "创建必要的目录"
+    mkdir -p logs
+    mkdir -p ssl
+    print_message "目录创建完成"
 }
 
-# 函数：备份当前版本
-backup_current() {
-    if [ -d "$APP_DIR" ]; then
-        print_info "备份当前版本..."
-        BACKUP_NAME="backup-$(date +%Y%m%d-%H%M%S)"
-        sudo cp -r $APP_DIR $BACKUP_DIR/$BACKUP_NAME
-        print_info "备份完成: $BACKUP_DIR/$BACKUP_NAME"
-    fi
+# 构建镜像
+build_image() {
+    print_step "构建 Docker 镜像"
+    docker-compose build --no-cache
+    print_message "镜像构建完成"
 }
 
-# 函数：拉取最新代码
-pull_code() {
-    print_info "拉取最新代码..."
-    cd $APP_DIR
-    sudo git pull origin main
+# 启动开发环境
+start_dev() {
+    print_step "启动开发环境"
+    docker-compose up -d
+    print_message "开发环境启动完成"
+    print_message "访问地址: http://localhost:3000"
 }
 
-# 函数：安装依赖
-install_dependencies() {
-    print_info "安装依赖..."
-    cd $APP_DIR
-    sudo npm ci --production
+# 启动生产环境
+start_prod() {
+    print_step "启动生产环境"
+    docker-compose -f docker-compose.prod.yml up -d
+    print_message "生产环境启动完成"
+    print_message "访问地址: http://localhost:80"
 }
 
-# 函数：构建应用
-build_app() {
-    print_info "构建应用..."
-    cd $APP_DIR
-    # 如果有构建步骤，在这里添加
-    # sudo npm run build
+# 停止服务
+stop_services() {
+    print_step "停止服务"
+    docker-compose down
+    docker-compose -f docker-compose.prod.yml down 2>/dev/null || true
+    print_message "服务已停止"
 }
 
-# 函数：重启服务
-restart_services() {
-    print_info "重启服务..."
-    
-    # 重启 PM2 应用
-    sudo pm2 reload ecosystem.config.js --env production
-    
-    # 重启 Nginx
-    sudo systemctl reload nginx
-    
-    print_info "服务重启完成"
+# 查看日志
+view_logs() {
+    print_step "查看应用日志"
+    docker-compose logs -f movie-app
 }
 
-# 函数：健康检查
-health_check() {
-    print_info "执行健康检查..."
-    sleep 5
-    
-    if curl -f http://localhost:3000 > /dev/null 2>&1; then
-        print_info "应用运行正常"
-    else
-        print_error "应用启动失败"
-        exit 1
-    fi
+# 查看状态
+view_status() {
+    print_step "查看服务状态"
+    docker-compose ps
 }
 
-# 函数：显示部署信息
-show_deployment_info() {
-    print_info "部署完成！"
-    echo "应用目录: $APP_DIR"
-    echo "日志目录: $LOG_DIR"
-    echo "备份目录: $BACKUP_DIR"
+# 清理资源
+cleanup() {
+    print_step "清理 Docker 资源"
+    docker-compose down --volumes --remove-orphans
+    docker system prune -f
+    print_message "清理完成"
+}
+
+# 显示帮助信息
+show_help() {
+    echo "电影平台 Docker 部署脚本"
     echo ""
-    print_info "常用命令:"
-    echo "查看应用状态: sudo pm2 status"
-    echo "查看应用日志: sudo pm2 logs $APP_NAME"
-    echo "重启应用: sudo pm2 restart $APP_NAME"
-    echo "查看 Nginx 状态: sudo systemctl status nginx"
+    echo "使用方法:"
+    echo "  ./deploy.sh dev      - 启动开发环境"
+    echo "  ./deploy.sh prod     - 启动生产环境"
+    echo "  ./deploy.sh stop     - 停止所有服务"
+    echo "  ./deploy.sh logs     - 查看应用日志"
+    echo "  ./deploy.sh status   - 查看服务状态"
+    echo "  ./deploy.sh cleanup  - 清理 Docker 资源"
+    echo "  ./deploy.sh help     - 显示帮助信息"
+    echo ""
+    echo "环境要求:"
+    echo "  - Docker 20.10+"
+    echo "  - Docker Compose 2.0+"
+    echo "  - 至少 1GB 可用内存"
 }
 
 # 主函数
 main() {
-    print_info "开始部署 $APP_NAME..."
+    local command=${1:-help}
     
-    # 检查必要命令
-    check_command "git"
-    check_command "npm"
-    check_command "pm2"
-    check_command "nginx"
-    
-    # 执行部署步骤
-    create_directories
-    backup_current
-    pull_code
-    install_dependencies
-    build_app
-    restart_services
-    health_check
-    show_deployment_info
-    
-    print_info "部署完成！"
+    case $command in
+        dev)
+            check_docker
+            create_directories
+            build_image
+            start_dev
+            ;;
+        prod)
+            check_docker
+            create_directories
+            build_image
+            start_prod
+            ;;
+        stop)
+            stop_services
+            ;;
+        logs)
+            view_logs
+            ;;
+        status)
+            view_status
+            ;;
+        cleanup)
+            cleanup
+            ;;
+        help|--help|-h)
+            show_help
+            ;;
+        *)
+            print_error "未知命令: $command"
+            show_help
+            exit 1
+            ;;
+    esac
 }
 
 # 执行主函数

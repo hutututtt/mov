@@ -102,6 +102,7 @@ app.get('/api/movies/category/:id', async (req, res) => {
     const { id } = req.params;
     const { page = 1 } = req.query;
     
+    
     const response = await axios.get(`${API_BASE}/dyTag/tpl2_data?id=${id}&page=${page}`, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Linux; Android 11; MI 9 Build/RKQ1.200826.002; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/137.0.7151.115 Mobile Safari/537.36;webank/h5face;webank/1.0;netType:NETWORK_WIFI;appVersion:423;packageName:com.jp3.xg3',
@@ -146,15 +147,152 @@ app.get('/api/movie/:id', async (req, res) => {
 // 搜索电影
 app.get('/api/search', async (req, res) => {
   try {
-    const { q, page = 1 } = req.query;
-    if (!q) {
+    const { q, page = 1, limit = 20 } = req.query;
+    if (!q || q.trim() === '') {
       return res.status(400).json({ error: '搜索关键词不能为空' });
     }
     
-    // 这里可以添加搜索接口，暂时返回空结果
-    res.json({ code: 1, msg: '搜索功能开发中', data: { list: [] } });
+    const searchQuery = q.trim();
+    const pageNum = parseInt(page) || 1;
+    const limitNum = parseInt(limit) || 20;
+    const offset = (pageNum - 1) * limitNum;
+    
+    console.log(`搜索关键词: ${searchQuery}, 页码: ${pageNum}, 每页: ${limitNum}`);
+    
+    // 构建搜索URL - 使用新的搜索接口
+    const searchUrls = [
+      `https://api.ztcgi.com/api/v2/search/videoV2?key=${encodeURIComponent(searchQuery)}&category_id=88&page=${pageNum}&pageSize=${limitNum}`,
+      `https://api.ztcuc.com/api/search?keyword=${encodeURIComponent(searchQuery)}&page=${pageNum}&limit=${limitNum}`,
+      `https://api.ztcuc.com/api/movies/search?q=${encodeURIComponent(searchQuery)}&page=${pageNum}`,
+      `https://api.ztcuc.com/api/v1/search?query=${encodeURIComponent(searchQuery)}&page=${pageNum}`
+    ];
+    
+    let searchResults = [];
+    let hasNext = false;
+    let total = 0;
+    
+    // 尝试多个搜索接口
+    for (const url of searchUrls) {
+      try {
+        console.log(`尝试搜索接口: ${url}`);
+        const response = await axios.get(url, {
+          timeout: 10000,
+          headers: {
+            'User-Agent': 'PostmanRuntime-ApipostRuntime/1.1.0',
+            'Accept': 'application/json, text/plain, */*',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Connection': 'keep-alive',
+            'Host': url.includes('api.ztcgi.com') ? 'api.ztcgi.com' : 'api.ztcuc.com',
+            'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+            'Referer': url.includes('api.ztcgi.com') ? 'https://www.ztcgi.com/' : 'https://www.ztcuc.com/'
+          }
+        });
+        
+        // 处理新接口的响应格式
+        if (response.data) {
+          let data, list, totalCount, hasNextPage;
+          
+          // 新接口格式 (api.ztcgi.com)
+          if (url.includes('api.ztcgi.com')) {
+            data = response.data;
+            list = data.data || data.list || [];
+            totalCount = data.total || data.totalCount || list.length;
+            hasNextPage = data.hasNext || (pageNum * limitNum < totalCount);
+          } 
+          // 旧接口格式 (api.ztcuc.com)
+          else if (response.data.code === 1) {
+            data = response.data.data;
+            list = data.list || [];
+            totalCount = data.total || list.length;
+            hasNextPage = data.hasNext || false;
+          }
+          
+          if (list && Array.isArray(list) && list.length > 0) {
+            searchResults = list;
+            hasNext = hasNextPage;
+            total = totalCount;
+            console.log(`搜索成功，找到 ${searchResults.length} 个结果`);
+            break;
+          }
+        }
+      } catch (error) {
+        console.log(`搜索接口失败: ${url}, 错误: ${error.message}`);
+        continue;
+      }
+    }
+    
+    // 如果所有接口都失败，尝试从热门电影中搜索
+    if (searchResults.length === 0) {
+      try {
+        console.log('尝试从热门电影中搜索...');
+        const hotResponse = await axios.get('https://api.ztcuc.com/api/movies/hot', {
+          timeout: 10000,
+          headers: {
+            'User-Agent': 'PostmanRuntime-ApipostRuntime/1.1.0',
+            'Accept': 'application/json, text/plain, */*',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Connection': 'keep-alive',
+            'Host': 'api.ztcuc.com',
+            'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+            'Referer': 'https://www.ztcuc.com/'
+          }
+        });
+        
+        if (hotResponse.data && hotResponse.data.code === 1) {
+          const hotMovies = hotResponse.data.data || [];
+          // 简单的标题匹配搜索
+          searchResults = hotMovies.filter(movie => 
+            movie.title && movie.title.toLowerCase().includes(searchQuery.toLowerCase())
+          );
+          console.log(`从热门电影中找到 ${searchResults.length} 个匹配结果`);
+        }
+      } catch (error) {
+        console.log('从热门电影搜索失败:', error.message);
+      }
+    }
+    
+    // 处理搜索结果
+    const processedResults = searchResults.map(movie => ({
+      id: movie.id || movie.movie_id || Math.random().toString(36).substr(2, 9),
+      title: movie.title || movie.name || '未知标题',
+      cover: movie.cover || movie.poster || movie.path || movie.tvimg || movie.tagimg,
+      score: movie.score || movie.rating || '',
+      mask: movie.mask || movie.type || '',
+      year: movie.year || movie.release_year || '',
+      director: movie.director || '',
+      actors: movie.actors || movie.cast || '',
+      description: movie.description || movie.summary || movie.intro || '',
+      category: movie.category || movie.genre || '',
+      duration: movie.duration || movie.runtime || '',
+      country: movie.country || movie.region || '',
+      language: movie.language || '',
+      update_time: movie.update_time || movie.created_at || new Date().toISOString()
+    }));
+    
+    res.json({
+      code: 1,
+      msg: '搜索成功',
+      data: {
+        list: processedResults,
+        pagination: {
+          current: pageNum,
+          pageSize: limitNum,
+          total: total,
+          hasNext: hasNext,
+          hasPrev: pageNum > 1
+        },
+        searchQuery: searchQuery,
+        searchTime: new Date().toISOString()
+      }
+    });
+    
   } catch (error) {
-    res.status(500).json({ error: '搜索失败' });
+    console.error('搜索失败:', error);
+    res.status(500).json({ 
+      code: 0, 
+      msg: '搜索失败，请稍后重试',
+      error: error.message 
+    });
   }
 });
 
