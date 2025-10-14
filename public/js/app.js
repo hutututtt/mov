@@ -104,18 +104,32 @@ function bindGlobalEvents() {
     // 模态框关闭事件 - 使用事件委托
     document.addEventListener('click', function(e) {
         if (e.target.classList.contains('close')) {
+            e.preventDefault();
+            e.stopPropagation();
             const modal = e.target.closest('.modal');
             closeModal(modal);
         }
     });
 
     // 点击模态框外部关闭
-    window.addEventListener('click', function(e) {
+    document.addEventListener('click', function(e) {
         if (e.target === movieModal) {
             closeModal(movieModal);
         }
         if (e.target === playerModal) {
             closeModal(playerModal);
+        }
+    });
+
+    // ESC键关闭模态框
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            if (movieModal.style.display === 'block') {
+                closeModal(movieModal);
+            }
+            if (playerModal.style.display === 'block') {
+                closeModal(playerModal);
+            }
         }
     });
 }
@@ -389,6 +403,33 @@ function displayMovieDetail(movie) {
                         </div>
                     </div>
                 ` : ''}
+                
+                ${movie.ftp_list && movie.ftp_list.length > 0 ? `
+                    <div class="episode-list">
+                        <h3>选集列表</h3>
+                        <div class="episode-grid">
+                            ${movie.ftp_list.map((episode, index) => `
+                                <div class="episode-item" data-episode-index="${index}">
+                                    <div class="episode-poster">
+                                        <div class="episode-number">${episode.weight || (index + 1)}</div>
+                                        <div class="episode-play-overlay">
+                                            <i class="fas fa-play"></i>
+                                        </div>
+                                    </div>
+                                    <div class="episode-info">
+                                        <h4 class="episode-title">${episode.title}</h4>
+                                        ${episode.time_data ? `
+                                            <div class="episode-duration">
+                                                <i class="fas fa-clock"></i>
+                                                <span>${episode.time_data.titles_duration || '未知'}</span>
+                                            </div>
+                                        ` : ''}
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                ` : ''}
             </div>
         </div>
     `;
@@ -421,9 +462,180 @@ function displayMovieDetail(movie) {
             button.classList.add('playing');
             
             const source = movie.source_list_source[index];
-            playVideo(source.name, source.source_list, movie.title);
+            console.log('选择播放源:', source.name);
+            
+            // 清除所有选集的选中状态
+            const episodeItems = movieDetail.querySelectorAll('.episode-item');
+            episodeItems.forEach(ep => ep.classList.remove('selected'));
+            
+            // 显示提示信息
+            showSourceSelectedMessage(source.name);
         });
     });
+    
+    // 为选集列表添加事件监听器
+    const episodeItems = movieDetail.querySelectorAll('.episode-item');
+    episodeItems.forEach((item, index) => {
+        item.addEventListener('click', () => {
+            // 检查是否已选择播放源
+            const selectedSource = movieDetail.querySelector('.play-source-btn.playing');
+            if (!selectedSource) {
+                showError('请先选择播放源');
+                return;
+            }
+            
+            // 移除其他选集的选中状态
+            episodeItems.forEach(ep => ep.classList.remove('selected'));
+            // 添加当前选集的选中状态
+            item.classList.add('selected');
+            
+            const episode = movie.ftp_list[index];
+            console.log('播放选集:', episode);
+            
+            // 获取当前选中的播放源
+            const sourceIndex = Array.from(movieDetail.querySelectorAll('.play-source-btn')).indexOf(selectedSource);
+            const selectedSourceData = movie.source_list_source[sourceIndex];
+            
+            // 使用选中的播放源播放选集
+            const episodeSource = getEpisodeFromSource(selectedSourceData, index);
+            if (episodeSource.length > 0) {
+                playVideo(episode.title, episodeSource, `${movie.title} - ${episode.title}`);
+            } else {
+                showError('该播放源暂无此选集');
+            }
+        });
+    });
+}
+
+// 智能选择最佳播放源
+function getBestSourceForEpisode(movie, episodeIndex) {
+    console.log('为选集选择最佳播放源:', episodeIndex);
+    
+    // 优先级顺序：M3U8流媒体 > FTP
+    const sourcePriority = [
+        '极速蓝光',
+        'BF线路', 
+        'JY线路',
+        'HH线路',
+        'HN线路',
+        'IK线路',
+        'JS线路',
+        'TSZ线路',
+        '常规线路'
+    ];
+    
+    // 首先尝试VIP源
+    if (movie.vip_source_list_source && movie.vip_source_list_source.length > 0) {
+        const vipSource = movie.vip_source_list_source[0];
+        if (vipSource.source_list && vipSource.source_list[episodeIndex]) {
+            console.log('使用VIP源:', vipSource.name);
+            return [{
+                name: vipSource.source_list[episodeIndex].source_name,
+                url: vipSource.source_list[episodeIndex].url,
+                quality: 'VIP高清'
+            }];
+        }
+    }
+    
+    // 然后尝试普通播放源
+    if (movie.source_list_source && movie.source_list_source.length > 0) {
+        for (const sourceName of sourcePriority) {
+            const source = movie.source_list_source.find(s => s.name === sourceName);
+            if (source && source.source_list && source.source_list[episodeIndex]) {
+                console.log('使用播放源:', sourceName);
+                return [{
+                    name: source.source_list[episodeIndex].source_name,
+                    url: source.source_list[episodeIndex].url,
+                    quality: sourceName.includes('蓝光') ? '蓝光' : '高清'
+                }];
+            }
+        }
+    }
+    
+    // 最后使用FTP源作为备选
+    if (movie.ftp_list && movie.ftp_list[episodeIndex]) {
+        console.log('使用FTP源作为备选');
+        return [{
+            name: movie.ftp_list[episodeIndex].title,
+            url: movie.ftp_list[episodeIndex].url,
+            quality: '标清'
+        }];
+    }
+    
+    // 如果都没有，返回空数组
+    console.warn('未找到可用的播放源');
+    return [];
+}
+
+// 为播放源选择最佳选集
+function getBestEpisodeForSource(movie, source, episodeIndex) {
+    console.log('为播放源选择最佳选集:', source.name, episodeIndex);
+    
+    if (source && source.source_list && source.source_list[episodeIndex]) {
+        return [{
+            name: source.source_list[episodeIndex].source_name,
+            url: source.source_list[episodeIndex].url,
+            quality: source.name.includes('蓝光') ? '蓝光' : '高清'
+        }];
+    }
+    
+    // 如果该源没有对应选集，尝试其他源
+    console.warn(`播放源 ${source.name} 没有第${episodeIndex + 1}集，尝试其他源`);
+    return getBestSourceForEpisode(movie, episodeIndex);
+}
+
+// 从播放源获取具体选集
+function getEpisodeFromSource(source, episodeIndex) {
+    console.log('从播放源获取选集:', source.name, episodeIndex);
+    
+    if (source && source.source_list && source.source_list[episodeIndex]) {
+        return [{
+            name: source.source_list[episodeIndex].source_name,
+            url: source.source_list[episodeIndex].url,
+            quality: source.name.includes('蓝光') ? '蓝光' : '高清'
+        }];
+    }
+    
+    console.warn(`播放源 ${source.name} 没有第${episodeIndex + 1}集`);
+    return [];
+}
+
+// 显示播放源选择提示
+function showSourceSelectedMessage(sourceName) {
+    // 创建提示信息
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'source-selected-message';
+    messageDiv.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(0, 122, 255, 0.9);
+        color: white;
+        padding: 1rem 2rem;
+        border-radius: 10px;
+        z-index: 3000;
+        font-weight: bold;
+        text-align: center;
+        box-shadow: 0 4px 20px rgba(0, 122, 255, 0.3);
+    `;
+    messageDiv.innerHTML = `
+        <div style="margin-bottom: 0.5rem;">
+            <i class="fas fa-check-circle" style="font-size: 1.2em; margin-right: 0.5rem;"></i>
+            已选择播放源
+        </div>
+        <div style="font-size: 1.1em;">${sourceName}</div>
+        <div style="font-size: 0.9em; margin-top: 0.5rem; opacity: 0.8;">请选择要播放的剧集</div>
+    `;
+    
+    document.body.appendChild(messageDiv);
+    
+    // 2秒后自动移除
+    setTimeout(() => {
+        if (messageDiv.parentNode) {
+            messageDiv.parentNode.removeChild(messageDiv);
+        }
+    }, 2000);
 }
 
 // 播放视频
@@ -447,8 +659,26 @@ function playVideo(sourceName, sourceList, movieTitle = '') {
 
 // 创建现代化视频播放器
 function createModernVideoPlayer(sourceName, sourceList, movieTitle) {
-    // 清空播放器内容
+    console.log('创建视频播放器:', sourceName);
+    
+    // 先清理之前的播放器内容
     videoPlayer.innerHTML = '';
+    
+    // 清理之前的HLS实例
+    if (window.hlsInstances) {
+        window.hlsInstances.forEach(hls => {
+            if (hls && typeof hls.destroy === 'function') {
+                hls.destroy();
+            }
+        });
+        window.hlsInstances = [];
+    }
+    
+    // 清理之前的控制区域
+    const existingControls = playerModal.querySelector('.player-controls-container');
+    if (existingControls) {
+        existingControls.remove();
+    }
     
     // 创建播放器容器
     const playerContainer = document.createElement('div');
@@ -499,17 +729,20 @@ function createModernVideoPlayer(sourceName, sourceList, movieTitle) {
                 <button class="quality-btn">标清</button>
             </div>
         </div>
-        <div class="test-video-container">
-            <button id="testVideoBtn" class="test-video-btn">
-                <i class="fas fa-video"></i>
-                测试播放 (示例视频)
-            </button>
-        </div>
     `;
     
     // 将控制区域添加到播放器模态框
     const playerModalContent = playerModal.querySelector('.modal-content');
     playerModalContent.appendChild(controlsContainer);
+    
+    // 重新绑定测试视频按钮事件
+    const testVideoBtn = document.getElementById('testVideoBtn');
+    if (testVideoBtn) {
+        testVideoBtn.addEventListener('click', function() {
+            const testUrl = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
+            createVideoPlayer(testUrl);
+        });
+    }
     
     // 创建带备用播放源的视频播放器
     createVideoPlayerWithFallback(sourceList, movieTitle);
@@ -586,6 +819,11 @@ function createVideoPlayer(url, movieTitle, onError) {
     // 绑定播放器控制事件
     bindVideoControls(video, movieTitle);
     
+    // 初始化HLS实例数组
+    if (!window.hlsInstances) {
+        window.hlsInstances = [];
+    }
+    
     // 检查是否为M3U8流
     if (url.includes('.m3u8')) {
         console.log('检测到M3U8流媒体');
@@ -596,6 +834,9 @@ function createVideoPlayer(url, movieTitle, onError) {
                 enableWorker: true,
                 lowLatencyMode: false
             });
+            
+            // 将HLS实例添加到全局数组
+            window.hlsInstances.push(hls);
             
             hls.on(Hls.Events.MEDIA_ATTACHED, function () {
                 console.log('HLS媒体已附加');
@@ -940,23 +1181,6 @@ function displaySearchResults(data) {
         return;
     }
     
-    // 显示搜索结果标题
-    const resultsHeader = document.createElement('div');
-    resultsHeader.className = 'search-results-header';
-    resultsHeader.innerHTML = `
-        <div class="search-header-content">
-            <div class="search-header-info">
-                <h1 class="search-title">"${searchQuery}"</h1>
-                <p class="search-subtitle">找到 ${pagination.total || list.length} 个结果</p>
-            </div>
-            <button class="back-to-hot" onclick="exitSearchMode()">
-                <i class="fas fa-arrow-left"></i>
-                <span>返回热门</span>
-            </button>
-        </div>
-    `;
-    movieList.appendChild(resultsHeader);
-    
     // 显示电影列表
     const moviesGrid = document.createElement('div');
     moviesGrid.className = 'apple-movie-grid search-results-grid';
@@ -1276,12 +1500,39 @@ function showError(message) {
 function closeModal(modal) {
     if (modal) {
         modal.style.display = 'none';
-        // 停止视频播放
-        const video = videoPlayer.querySelector('video');
-        if (video) {
+        
+        // 停止所有视频播放并清理
+        const videos = modal.querySelectorAll('video');
+        videos.forEach(video => {
             video.pause();
             video.currentTime = 0;
+            video.src = '';
+            video.load(); // 清理视频资源
+        });
+        
+        // 停止HLS实例
+        if (window.hlsInstances) {
+            window.hlsInstances.forEach(hls => {
+                if (hls && typeof hls.destroy === 'function') {
+                    hls.destroy();
+                }
+            });
+            window.hlsInstances = [];
         }
+        
+        // 清理播放器内容
+        const videoPlayer = modal.querySelector('#videoPlayer');
+        if (videoPlayer) {
+            videoPlayer.innerHTML = '';
+        }
+        
+        // 清理控制区域
+        const controlsContainer = modal.querySelector('.player-controls-container');
+        if (controlsContainer) {
+            controlsContainer.remove();
+        }
+        
+        console.log('模态框已关闭，视频资源已清理');
     }
 }
 

@@ -7,24 +7,55 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// 中间件配置
+// 中间件配置 - 简化安全头设置
 app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com"],
-      imgSrc: ["'self'", "data:", "https:", "http:"],
-      mediaSrc: ["'self'", "https:", "http:", "ftp:", "blob:"],
-      connectSrc: ["'self'", "https:", "http:"],
-      frameSrc: ["'self'", "https:"],
-      objectSrc: ["'none'"],
-      baseUri: ["'self'"]
-    }
-  }
+  contentSecurityPolicy: false,
+  crossOriginEmbedderPolicy: false,
+  crossOriginOpenerPolicy: false,
+  crossOriginResourcePolicy: false,
+  originAgentCluster: false,
+  referrerPolicy: false,
+  strictTransportSecurity: false,
+  xContentTypeOptions: false,
+  xDnsPrefetchControl: false,
+  xDownloadOptions: false,
+  xFrameOptions: false,
+  xPermittedCrossDomainPolicies: false,
+  xPoweredBy: false,
+  xXssProtection: false
 }));
 
-app.use(cors());
+// CORS配置 - 完全开放
+app.use(cors({
+  origin: '*',
+  credentials: false,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['*']
+}));
+
+// 移除所有安全头
+app.use((req, res, next) => {
+  // 移除所有可能导致问题的安全头
+  res.removeHeader('Cross-Origin-Opener-Policy');
+  res.removeHeader('Cross-Origin-Resource-Policy');
+  res.removeHeader('Origin-Agent-Cluster');
+  res.removeHeader('Cross-Origin-Embedder-Policy');
+  res.removeHeader('Strict-Transport-Security');
+  res.removeHeader('X-Content-Type-Options');
+  res.removeHeader('X-Frame-Options');
+  res.removeHeader('X-XSS-Protection');
+  res.removeHeader('Referrer-Policy');
+  
+  // 确保静态资源正确设置Content-Type
+  if (req.url.endsWith('.css')) {
+    res.setHeader('Content-Type', 'text/css; charset=utf-8');
+  } else if (req.url.endsWith('.js')) {
+    res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+  }
+  
+  next();
+});
+
 // 增加请求体大小限制，避免 400 错误
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
@@ -55,6 +86,11 @@ updateStaticDomain();
 // 路由
 app.get('/', (req, res) => {
   res.render('index', { title: '在线电影平台' });
+});
+
+// 测试路由
+app.get('/test', (req, res) => {
+  res.render('test', { title: '服务器测试' });
 });
 
 // 获取电影分类列表

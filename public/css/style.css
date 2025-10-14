@@ -467,7 +467,7 @@ body::before {
 
 /* 主要内容区域 */
 .main-content {
-    max-width: 1400px;
+    width: 100%;
     margin: 0 auto;
     padding: 120px var(--space-lg) var(--space-2xl);
     min-height: 100vh;
@@ -527,6 +527,17 @@ body::before {
     gap: var(--space-xl);
     margin-bottom: var(--space-3xl);
     padding: var(--space-lg) 0;
+}
+
+/* 搜索结果模式下的电影网格 */
+.apple-movie-grid.search-results-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: var(--space-xl) !important;
+    width: 100% !important;
+    max-width: none !important;
+    display: grid !important;
+    margin: 0 !important;
+    padding: var(--space-lg) 0 !important;
 }
 
 /* 现代化电影卡片 */
@@ -909,6 +920,174 @@ body::before {
     content: '▶';
     color: var(--brand-primary);
     font-size: 20px;
+}
+
+/* 现代化选集列表区域 */
+.episode-list {
+    margin-bottom: var(--space-xl);
+}
+
+.episode-list h3 {
+    font-family: var(--font-display);
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: var(--space-lg);
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.episode-list h3::before {
+    content: '📺';
+    color: var(--brand-primary);
+    font-size: 20px;
+}
+
+.episode-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: var(--space-lg);
+    margin-bottom: var(--space-lg);
+}
+
+.episode-item {
+    background: var(--card-bg);
+    border-radius: var(--radius-xl);
+    overflow: hidden;
+    cursor: pointer;
+    transition: all var(--transition-normal);
+    border: 2px solid var(--border-color);
+    position: relative;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    box-shadow: var(--shadow-card);
+}
+
+.episode-item::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--brand-gradient);
+    opacity: 0;
+    transition: opacity var(--transition-normal);
+    z-index: 1;
+    pointer-events: none;
+}
+
+.episode-item:hover {
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: var(--shadow-xl);
+    border-color: var(--brand-primary);
+}
+
+.episode-item:hover::before {
+    opacity: 0.05;
+}
+
+.episode-item.selected {
+    border-color: var(--brand-primary);
+    box-shadow: var(--shadow-glow);
+    transform: translateY(-4px);
+}
+
+.episode-item.selected::before {
+    opacity: 0.1;
+}
+
+.episode-poster {
+    position: relative;
+    width: 100%;
+    height: 120px;
+    background: var(--secondary-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+}
+
+.episode-number {
+    position: absolute;
+    top: var(--space-sm);
+    left: var(--space-sm);
+    background: var(--brand-gradient);
+    color: white;
+    padding: var(--space-xs) var(--space-sm);
+    border-radius: var(--radius-md);
+    font-size: 12px;
+    font-weight: 600;
+    z-index: 2;
+    box-shadow: var(--shadow-sm);
+}
+
+.episode-play-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 48px;
+    height: 48px;
+    background: rgba(0, 0, 0, 0.7);
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 18px;
+    opacity: 0;
+    transition: all var(--transition-normal);
+    z-index: 2;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+.episode-item:hover .episode-play-overlay {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.1);
+}
+
+.episode-info {
+    padding: var(--space-md);
+    position: relative;
+    z-index: 3;
+    background: var(--card-bg);
+}
+
+.episode-title {
+    font-family: var(--font-display);
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: var(--space-sm);
+    line-height: 1.3;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    transition: color var(--transition-normal);
+}
+
+.episode-item:hover .episode-title {
+    color: var(--brand-primary);
+}
+
+.episode-duration {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.episode-duration i {
+    color: var(--brand-primary);
+    font-size: 12px;
 }
 
 .source-list {
@@ -1421,6 +1600,35 @@ body::before {
         font-size: 14px;
         min-width: 100px;
     }
+    
+    /* 选集列表移动端优化 */
+    .episode-grid {
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+        gap: var(--space-md);
+    }
+    
+    .episode-poster {
+        height: 100px;
+    }
+    
+    .episode-title {
+        font-size: 14px;
+    }
+    
+    .episode-duration {
+        font-size: 12px;
+    }
+    
+    .episode-number {
+        font-size: 11px;
+        padding: var(--space-xs);
+    }
+    
+    .episode-play-overlay {
+        width: 40px;
+        height: 40px;
+        font-size: 16px;
+    }
 }
 
 @media (max-width: 480px) {
@@ -1488,6 +1696,35 @@ body::before {
         padding: var(--space-xs) var(--space-md);
         font-size: 13px;
         min-width: 80px;
+    }
+    
+    /* 选集列表小屏幕优化 */
+    .episode-grid {
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: var(--space-sm);
+    }
+    
+    .episode-poster {
+        height: 80px;
+    }
+    
+    .episode-title {
+        font-size: 13px;
+    }
+    
+    .episode-duration {
+        font-size: 11px;
+    }
+    
+    .episode-number {
+        font-size: 10px;
+        padding: 2px var(--space-xs);
+    }
+    
+    .episode-play-overlay {
+        width: 36px;
+        height: 36px;
+        font-size: 14px;
     }
 }
 
@@ -1569,7 +1806,7 @@ body::before {
 
 
 /* 现代化搜索结果头部 */
-.search-results-header {
+/* .search-results-header {
     margin-bottom: var(--space-2xl);
     background: var(--card-bg);
     border-radius: var(--radius-xl);
@@ -1578,7 +1815,7 @@ body::before {
     border: 1px solid var(--border-color);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-}
+} */
 
 .search-header-content {
     display: flex;
@@ -1660,8 +1897,9 @@ body::before {
     margin-top: 0;
     padding: 0;
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    grid-template-columns: repeat(2, 1fr);
     gap: var(--space-xl);
+    width: 100%;
 }
 
 /* 现代化无搜索结果 */
@@ -1786,9 +2024,10 @@ body::before {
         gap: var(--space-lg);
     }
     
-    .search-results-grid {
-        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    .apple-movie-grid.search-results-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
         gap: var(--space-lg);
+        width: 100% !important;
     }
 }
 
@@ -1816,9 +2055,10 @@ body::before {
         gap: var(--space-md);
     }
     
-    .search-results-grid {
-        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    .apple-movie-grid.search-results-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
         gap: var(--space-md);
+        width: 100% !important;
     }
     
     .movie-detail {
@@ -1885,13 +2125,14 @@ body::before {
     }
     
     .apple-movie-grid {
-        grid-template-columns: repeat(2, 1fr);
+        /* grid-template-columns: repeat(2, 1fr); */
         gap: var(--space-sm);
     }
     
-    .search-results-grid {
-        grid-template-columns: repeat(2, 1fr);
+    .apple-movie-grid.search-results-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
         gap: var(--space-sm);
+        width: 100% !important;
     }
     
     .movie-poster-container {
